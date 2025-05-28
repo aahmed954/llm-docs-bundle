@@ -1,0 +1,1228 @@
+import dash
+from dash import html, dcc, Input, Output, State
+import dash_ag_grid as dag
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import base64
+import os
+
+# Define the columns
+MAIN_COLS = ['#P', 'Model', 'UGI 🏆', 'W/10 👍', 'NatInt 💡', 'Coding 💻', 'Unruly', 'Internet', 'Societal/Political', 'Political Lean 📋', 'Ideology Name']
+AXES_COLS_1 = ['govt', 'dipl', 'econ', 'scty']
+AXES_COLS_2 = ['Federal-Unitary', 'Democratic-Autocratic', 'Security-Freedom', 'Nationalism-Internationalism',
+               'Militarist-Pacifist', 'Assimilationist-Multiculturalist', 'Collectivize-Privatize',
+               'Planned-LaissezFaire', 'Isolationism-Globalism', 'Irreligious-Religious',
+               'Progressive-Traditional', 'Acceleration-Bioconservative']
+UGI_CATEGORY_COLS = ['Unruly', 'Internet', 'Societal/Political']
+
+def load_leaderboard_data(csv_file_path):
+    try:
+        df = pd.read_csv(csv_file_path, na_values=['NA'])
+        
+        # Add type sort value
+        def get_type_sort_value(row):
+            if pd.isna(row['Total Parameters']):
+                return 3  # P
+            if row['Is Foundation'] and not row['Is Merged']:
+                return 0  # B
+            if row['Is Merged']:
+                return 2  # M
+            if row['Is Finetuned'] and not row['Is Merged']:
+                return 1  # F
+            return 4
+
+        df['model_type_sort'] = df.apply(get_type_sort_value, axis=1)
+        
+        # Convert date columns to datetime
+        for col in ['Release Date', 'Test Date']:
+            df[col] = pd.to_datetime(df[col], format='%m/%d/%Y', errors='coerce')
+        
+        # Store original release date for sorting (earliest first for tertiary sort)
+        df['Release_Date_Sort'] = df['Release Date']
+        
+        # Create a multi-tiered sorting key
+        # 1. UGI score (highest first) - primary sort
+        # 2. NatInt score (highest first) - secondary sort for same UGI
+        # 3. Release Date (earliest first) - tertiary sort for same UGI and NatInt
+        
+        # Format dates as strings for display
+        df['Release Date'] = df['Release Date'].dt.strftime('%Y-%m-%d')
+        df['Test Date'] = df['Test Date'].dt.strftime('%Y-%m-%d')
+        
+        # Calculate the date two weeks ago from today
+        two_weeks_ago = (datetime.now() - timedelta(days=6)).strftime('%Y-%m-%d') #temp 6
+        
+        # Store model name and link separately
+        df['Model_Link'] = df['Model Link'].fillna('')
+        df['Model_Display'] = df['author/model_name']
+        
+        # Check for new models based on Test Date
+        df['is_new'] = df.apply(
+            lambda row: '🆕' if pd.notna(row["Test Date"]) and row["Test Date"] >= two_weeks_ago else '',
+            axis=1
+        )
+        
+        # Add pinned and selected columns
+        df['pinned'] = False
+        df['selected'] = False
+        
+        # Convert percentage strings to floats for all relevant columns
+        percentage_columns = ['Political Lean 📋'] + AXES_COLS_1 + AXES_COLS_2
+        for col in percentage_columns:
+            df[col] = pd.to_numeric(df[col].astype(str).str.rstrip('%'), errors='coerce')
+        
+        # Round numeric columns and handle NA values
+        numeric_columns = df.select_dtypes(include=[np.number]).columns
+        for col in numeric_columns:
+            df[col] = df[col].apply(lambda x: None if pd.isna(x) else round(x, 3))
+
+        # Sort with multiple keys in the required order
+        df = df.sort_values(
+            by=['UGI 🏆', 'NatInt 💡', 'Release_Date_Sort'], 
+            ascending=[False, False, True]  # UGI desc, NatInt desc, Release date asc (earliest first)
+        )
+        
+        return df
+    except Exception as e:
+        print(f"Error loading CSV file: {e}")
+        return pd.DataFrame()
+
+def load_ideology_descriptions():
+    try:
+        with open('ideologies.js', 'r', encoding='utf-8') as file:
+            content = file.read()
+            # Extract the array content between brackets
+            start_idx = content.find('[')
+            end_idx = content.rfind(']') + 1
+            if start_idx == -1 or end_idx == 0:
+                return {}
+                
+            ideology_data = content[start_idx:end_idx]
+            # Convert JavaScript object syntax to Python
+            ideology_data = ideology_data.replace('true', 'True').replace('false', 'False')
+            ideology_data = eval(ideology_data)
+            
+            # Create a dictionary mapping ideology names to their descriptions
+            return {item['name']: item['desc'] for item in ideology_data}
+    except Exception as e:
+        print(f"Error loading ideologies.js: {e}")
+        return {}
+
+# Load descriptions once at startup
+IDEOLOGY_DESCRIPTIONS = load_ideology_descriptions()
+
+def get_kofi_button_base64():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    
+    # Return both light and dark theme images as a dictionary
+    images = {}
+    for theme in ['light', 'dark']:
+        filename = 'support_me_on_kofi_white.png' if theme == 'light' else 'support_me_on_kofi_dark.png'
+        with open(os.path.join(current_dir, f"Images/{filename}"), "rb") as image_file:
+            images[theme] = base64.b64encode(image_file.read()).decode('utf-8')
+    return images
+
+# Initialize the Dash app
+app = dash.Dash(__name__, external_stylesheets=[
+    "https://use.fontawesome.com/releases/v5.15.4/css/all.css"
+])
+server = app.server
+
+# Custom CSS
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>UGI Leaderboard</title>
+        {%favicon%}
+        {%css%}
+        <style>
+            :root {
+                --bg-color: #ffffff;
+                --text-color: #000000;
+                --grid-bg: #ffffff;
+                --grid-border: #ddd;
+                --link-color: #007bff;
+                --secondary-text: #666;
+                --pinned-bg: #f5f5f5;
+                --border-color: #ccc;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg-color: #0d1117;
+                    --text-color: #e6e6e6;
+                    --grid-bg: #161b22;
+                    --grid-border: #30363d;
+                    --link-color: #58a6ff;
+                    --secondary-text: #8b949e;
+                    --pinned-bg: #1c2128;
+                    --border-color: #30363d;
+                    color-scheme: dark;
+                }
+                .ag-theme-alpine .ag-menu {
+                    background-color: #161b22 !important;
+                    color: #e6e6e6 !important;
+                    border-color: #30363d !important;
+                }
+                .ag-theme-alpine .ag-filter-condition {
+                    background-color: #161b22 !important;
+                    border-color: #30363d !important;
+                }
+                .ag-theme-alpine .ag-mini-filter input,
+                .ag-theme-alpine .ag-filter input {
+                    background-color: #0d1117 !important;
+                    color: #e6e6e6 !important;
+                    border-color: #30363d !important;
+                }
+                .ag-theme-alpine .ag-select .ag-picker-field-wrapper {
+                    background-color: #0d1117 !important;
+                    color: #e6e6e6 !important;
+                    border-color: #30363d !important;
+                }
+                .ag-theme-alpine .ag-picker-field-wrapper {
+                    border-color: #30363d !important;
+                }
+                .ag-theme-alpine .ag-select-list {
+                    background-color: #161b22 !important;
+                    color: #e6e6e6 !important;
+                }
+                .ag-theme-alpine .ag-select-list-item:hover {
+                    background-color: #1c2128 !important;
+                }
+                .ag-theme-alpine input[type="date"] {
+                    color-scheme: dark;
+                    background-color: #161b22;
+                    color: #e6e6e6;
+                    border-color: #30363d;
+                }
+                
+                .ag-theme-alpine input[type="date"]::-webkit-calendar-picker-indicator {
+                    background-color: #161b22;
+                    cursor: pointer;
+                    filter: invert(0.8);
+                }
+                
+            }
+            body {
+                font-family: 'Segoe UI', Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background-color: var(--bg-color);
+                color: var(--text-color);
+            }
+            /* Header and Title Styles */
+            .page-title {
+                text-align: center;
+                margin: 0;
+                font-size: 38px;
+                color: var(--text-color) !important;
+            }
+            .page-subtitle {
+                text-align: center;
+                margin: 0;
+                font-size: 20px;
+                font-weight: 600;
+                color: var(--text-color) !important;
+            }
+            /* Filter Styles */
+            .model-type-filter {
+                color: var(--text-color) !important;
+                margin-right: 10px;
+                font-weight: bold;
+            },
+            #model-type-filter label,
+            #na-model-filter label {
+                color: var(--text-color) !important;
+                margin-right: 10px;
+                font-weight: bold;
+            }
+            /* Grid Styles */
+            .ag-theme-alpine {
+                --ag-font-family: 'Segoe UI', Arial, sans-serif;
+                --ag-font-size: 14px;
+                --ag-background-color: var(--grid-bg);
+                --ag-border-color: var(--grid-border);
+                --ag-header-background-color: var(--grid-bg);
+                --ag-odd-row-background-color: var(--grid-bg);
+                --ag-header-foreground-color: var(--text-color);
+                --ag-foreground-color: var(--text-color);
+                --ag-row-border-color: var(--grid-border);
+            }
+            .ag-theme-alpine .ag-pinned-left-header,
+            .ag-theme-alpine .ag-cell-last-left-pinned {
+                border-right: 2px solid var(--grid-border) !important;
+                margin-right: -1px !important;
+            }
+            
+            /* Mobile specific fixes */
+            .ag-theme-alpine.ag-grid-mobile .ag-pinned-left-header,
+            .ag-theme-alpine.ag-grid-mobile .ag-cell-last-left-pinned {
+                border-right: 2px solid var(--grid-border) !important;
+            }
+            
+            /* Ensure pinned columns maintain their position */
+            .ag-theme-alpine .ag-pinned-left-cols-container,
+            .ag-theme-alpine .ag-pinned-left-header {
+                position: sticky;
+                left: 0;
+                z-index: 1;
+            }
+            .ag-floating-top {
+                border-bottom: 3px solid var(--border-color) !important;
+            }
+            .ag-floating-top:empty {
+                border-bottom: none !important;
+            }
+            .pinned-row {
+                background-color: var(--pinned-bg) !important;
+                font-weight: 500;
+            }
+            /* Text Alignment Classes */
+            .ag-left-aligned-header {
+                text-align: left !important;
+            }
+            .ag-left-aligned-cell {
+                text-align: left !important;
+            }
+            .ag-header-cell-text {
+                white-space: normal !important;
+                line-height: 1.2em;
+                overflow: visible;
+                padding-bottom: 4px;
+            }
+            
+            .ag-header-cell {
+                height: auto !important;
+                min-height: 48px;
+            }
+            .wrap-text {
+                white-space: normal !important;
+                line-height: 1.2em;
+            }
+            .no-break {
+                white-space: nowrap !important;
+            }
+            /* Border Classes */
+            .border-left {
+                border-left: 2px solid var(--grid-border) !important;
+                margin-left: -2px !important;
+            }
+            .border-right {
+                border-right: 2px solid var(--grid-border) !important;
+            }
+            /* Link Styles */
+            .model-link {
+                color: var(--link-color) !important;
+                text-decoration: none;
+            }
+            .model-link:visited {
+                color: var(--link-color) !important;
+            }
+            .model-link:active {
+                color: var(--link-color) !important;
+            }
+            .model-link:focus {
+                color: var(--link-color) !important;
+            }
+            .ag-theme-alpine a,
+            .ag-theme-alpine a:link,
+            .ag-theme-alpine a:visited,
+            .ag-theme-alpine a:hover,
+            .ag-theme-alpine a:active,
+            .ag-theme-alpine a:focus {
+                color: var(--link-color) !important;
+                text-decoration: none !important;
+            }
+            
+            .ag-theme-alpine a:hover {
+                text-decoration: underline !important;
+            }
+            .source-link {
+                color: var(--link-color) !important;
+                text-decoration: none;
+            }
+            /* Details/Summary Styles */
+            .details-summary {
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 1.2em;
+                margin-top: 20px;
+                color: var(--text-color) !important;
+            }
+            .ideology-note {
+                color: var(--secondary-text) !important;
+                font-size: 0.9em;
+            }
+            /* Markdown Content */
+            .markdown-content {
+                color: var(--text-color) !important;
+            }
+            .markdown-content a {
+                color: var(--link-color) !important;
+            }
+            /* Ko-fi Button Visibility */
+            .kofi-light {
+                display: none;
+            }
+            .kofi-dark {
+                display: none;
+            }
+            @media (prefers-color-scheme: light) {
+                .kofi-light {
+                    display: block;
+                }
+            }
+            @media (prefers-color-scheme: dark) {
+                .kofi-dark {
+                    display: block;
+                }
+                /* Dark Theme Specific Overrides */
+                .ag-theme-alpine {
+                    --ag-background-color: #161b22 !important;
+                    --ag-header-background-color: #161b22 !important;
+                    --ag-odd-row-background-color: #161b22 !important;
+                    --ag-row-background-color: #161b22 !important;
+                    --ag-header-foreground-color: #e6e6e6 !important;
+                    --ag-foreground-color: #e6e6e6 !important;
+                    --ag-row-border-color: #30363d !important;
+                    --ag-border-color: #30363d !important;
+                    --ag-secondary-border-color: #30363d !important;
+                    --ag-alpine-active-color: #58a6ff !important;
+                    --ag-selected-row-background-color: #1c2128 !important;
+                    --ag-row-hover-color: #1c2128 !important;
+                }
+                .ag-header-cell-filtered {
+                    background-color: rgba(88, 166, 255, 0.1) !important;
+                }
+                input[type="checkbox"] {
+                    accent-color: var(--link-color);
+                }
+                /* Ensure text colors in dark mode */
+                .page-title,
+                .page-subtitle,
+                .model-type-filter label,
+                #model-type-filter label,
+                #na-model-filter label {
+                    color: #e6e6e6 !important;
+                }
+                .filter-description,
+                .ideology-note {
+                    color: #8b949e !important;
+                }
+            }
+            a:visited {
+                color: var(--link-color) !important;
+            }
+            
+            .markdown-content a:visited {
+                color: var(--link-color) !important;
+            }
+            .split-header-container {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.2em;
+            }
+            
+            .split-header-top, .split-header-bottom {
+                white-space: nowrap;
+            }
+            .ag-theme-alpine .new-emoji-cell.ag-cell {
+                font-size: 18px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                padding-left: 12px !important;
+            }
+        </style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
+# Load data
+df = load_leaderboard_data("ugi-leaderboard-data.csv")
+
+# Define helper functions
+def create_numeric_column(field, width=125, sort=None, sortIndex=None, **kwargs):
+    column = {
+        "field": field,
+        "width": width,
+        "filter": "agNumberColumnFilter",
+        "filterParams": {
+            "defaultOption": "inRange",
+            "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+        },
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "cellClass": "ag-left-aligned-cell",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "suppressSizeToFit": True,
+        "sortingOrder": ['desc', 'asc'],
+        "comparator": {
+            "function": """
+                function(valueA, valueB, nodeA, nodeB, isInverted) {
+                    const a = nodeA.data.__sortValue;
+                    const b = nodeB.data.__sortValue;
+                    return a - b;
+                }
+            """
+        }
+    }
+    
+    # Update filterParams if provided in kwargs
+    if 'filterParams' in kwargs:
+        column['filterParams'].update(kwargs['filterParams'])
+        
+    if sort:
+        column["sort"] = sort
+    if sortIndex is not None:
+        column["sortIndex"] = sortIndex
+    return column
+    
+def create_text_column(field, width=120):
+    return {
+        "field": field,
+        "width": width,
+        "filter": "agTextColumnFilter",
+        "filterParams": {
+            "defaultOption": "contains",
+            "filterOptions": ['contains', 'notContains', 'startsWith', 'endsWith']
+        },
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "cellClass": "ag-left-aligned-cell",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True
+    }
+
+# Define column configurations
+columnDefs = [
+    {
+        "headerName": "📌",
+        "field": "pinned",
+        "width": 55,
+        "filter": False,
+        "suppressMenu": True,
+        "cellRenderer": "PinRenderer",
+        "pinned": "left"
+    },
+    {
+        "headerName": "",
+        "field": "is_new",
+        "width": 55,
+        "filter": False,
+        "suppressMenu": True,
+        "cellClass": "new-emoji-cell",
+        "pinned": "left"
+    },
+    {
+        "field": "#P",
+        "width": 115,
+        "filter": "agNumberColumnFilter",
+        "filterParams": {
+            "defaultOption": "equals",
+            "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+        },
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "cellClass": "ag-right-aligned-cell",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "suppressSizeToFit": True,
+        "sortingOrder": ['desc', 'asc'],
+        "pinned": "left"
+    },
+    {
+        "field": "model_type_sort",
+        "hide": True
+    },
+    {
+        "headerName": "T",
+        "field": "model_type_sort",  # Changed to use the sort field directly
+        "width": 45,
+        "filter": False,
+        "suppressMenu": True,
+        "cellRenderer": "TypeRenderer",
+        "pinned": "left",
+        "sortable": True,
+        "sortingOrder": ['asc', 'desc']
+    },
+    {
+        "field": "Model_Display",
+        "headerName": "Model",
+        "cellRenderer": "ModelLink",
+        "filter": "agTextColumnFilter",
+        "filterParams": {
+            "defaultOption": "contains",
+            "filterOptions": ['contains', 'notContains', 'startsWith', 'endsWith']
+        },
+        "width": 380,
+        "suppressMenu": False,
+        "pinned": "left",
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True
+    },
+    {
+        "field": "UGI 🏆",
+        "width": 120,
+        "filter": "agNumberColumnFilter",
+        "filterParams": {
+            "defaultOption": "greaterThanOrEqual"
+        },
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "cellClass": ["ag-left-aligned-cell", "border-left"],
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "suppressSizeToFit": True,
+        "sortingOrder": ['desc', 'asc']
+    },
+    create_numeric_column("W/10 👍", width=130, filterParams={
+        "defaultOption": "greaterThanOrEqual",
+        "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+    }),
+    {
+        "field": "NatInt 💡",
+        "headerName": "NatInt 💡",
+        "width": 140,
+        "filter": "agNumberColumnFilter",
+        "filterParams": {
+            "defaultOption": "greaterThanOrEqual",
+            "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+        },
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "cellClass": ["ag-left-aligned-cell", "border-left"],
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "suppressSizeToFit": True,
+        "sortingOrder": ['desc', 'asc']
+    },
+    create_numeric_column("Coding 💻", width=140, filterParams={
+        "defaultOption": "greaterThanOrEqual"
+    }),
+    {
+        "field": "Political Lean 📋",
+        "width": 175,
+        "filter": "agNumberColumnFilter",
+        "filterParams": {
+            "defaultOption": "inRange",
+            "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+        },
+        "valueFormatter": {
+            "function": "d3.format('.1f')(params.value) + '%'"
+        },
+        "sortingOrder": ['desc', 'asc'],
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "cellClass": "ag-left-aligned-cell",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True
+    }
+]
+
+ugi_category_columns = [
+    create_numeric_column(col, width=120) for col in UGI_CATEGORY_COLS
+]
+
+w10_type_columns = [
+    create_numeric_column("W/10-Direct", width=120, filterParams={
+        "defaultOption": "greaterThanOrEqual",
+        "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+    }),
+    create_numeric_column("W/10-Adherence", width=120, filterParams={
+        "defaultOption": "greaterThanOrEqual",
+        "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+    })
+]
+
+political_columns = [
+    {
+        "headerName": "Ideology",
+        "field": "Ideology Name",
+        "width": 160,
+        "filter": "agTextColumnFilter",
+        "filterParams": {
+            "defaultOption": "contains",
+            "filterOptions": ['contains', 'notContains', 'startsWith', 'endsWith']
+        },
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "cellClass": "ag-left-aligned-cell",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True
+    }
+]
+
+template_column = {
+    "field": "Prompt Template",
+    "headerName": "Template",
+    "width": 160,
+    "filter": "agTextColumnFilter",
+    "filterParams": {
+        "defaultOption": "contains",
+        "filterOptions": ['contains', 'notContains', 'startsWith', 'endsWith']
+    },
+    "headerClass": "ag-left-aligned-header wrap-text",
+    "cellClass": "ag-left-aligned-cell",
+    "wrapHeaderText": True,
+    "autoHeaderHeight": True,
+    "comparator": {
+        "function": """
+            function(valueA, valueB) {
+                if (!valueA && !valueB) return 0;
+                if (!valueA) return 1;
+                if (!valueB) return -1;
+                return valueA.toLowerCase().localeCompare(valueB.toLowerCase());
+            }
+        """
+    }
+}
+
+# Add axes columns with different widths
+for i, col in enumerate(AXES_COLS_1):
+    col_def = {
+        "field": col,
+        "width": 105,
+        "filter": "agNumberColumnFilter",
+        "filterParams": {
+            "defaultOption": "inRange",
+            "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+        },
+        "valueFormatter": {
+            "function": "d3.format('.1f')(params.value) + '%'"
+        },
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "cellClass": ["ag-left-aligned-cell"],
+        "sortingOrder": ['desc', 'asc']
+    }
+    
+    if i == 0:  # First column (govt)
+        col_def["cellClass"].append("border-left")
+    elif i == len(AXES_COLS_1) - 1:  # Last column (scty)
+        col_def["cellClass"].append("border-right")
+        
+    columnDefs.append(col_def)
+    
+template_with_split_header = """
+<div class="ag-cell-label-container" role="presentation">
+    <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"></span>
+    <div ref="eLabel" class="ag-header-cell-label" role="presentation">
+        <div class="split-header-container">
+            <div class="split-header-top">↑ {high}</div>
+            <div class="split-header-bottom">↓ {low}</div>
+        </div>
+        <span ref="eText" class="ag-header-cell-text" style="display: none"></span>
+        <span ref="eSortOrder" class="ag-header-icon ag-sort-order"></span>
+        <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon"></span>
+        <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon"></span>
+        <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon"></span>
+        <span ref="eFilter" class="ag-header-icon ag-filter-icon"></span>
+    </div>
+</div>
+"""
+
+for col in AXES_COLS_2:
+    high, low = col.split('-')
+    columnDefs.append({
+        "field": col,
+        "headerComponentParams": {
+            "template": template_with_split_header.format(high=high, low=low)
+        },
+        "width": 175,
+        "filter": "agNumberColumnFilter",
+        "filterParams": {
+            "defaultOption": "inRange",
+            "filterOptions": ['equals', 'notEqual', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual', 'inRange']
+        },
+        "valueFormatter": {
+            "function": "d3.format('.1f')(params.value) + '%'"
+        },
+        "sortingOrder": ['desc', 'asc']
+    })
+    
+# Date Columns
+columnDefs.extend([
+    {
+        "field": "Release Date",
+        "width": 130,
+        "filter": "agDateColumnFilter",
+        "filterParams": {
+            "defaultOption": "greaterThan",
+            "browserDatePicker": True,
+            "inRangeInclusive": True
+        },
+        "filterValueGetter": {
+            "function": """
+                function(params) {
+                    if (!params.data['Release Date']) return null;
+                    const [year, month, day] = params.data['Release Date'].split('-');
+                    return new Date(year, month - 1, day);
+                }
+            """
+        },
+        "valueFormatter": {
+            "function": """
+                function(params) {
+                    if (!params.value) return '';
+                    const [year, month, day] = params.value.split('-');
+                    return `${month}/${day}/${year}`;
+                }
+            """
+        },
+        "cellClass": ["ag-left-aligned-cell", "border-left"],
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "sortable": True
+    },
+    {
+        "field": "Test Date",
+        "width": 130,
+        "filter": "agDateColumnFilter",
+        "filterParams": {
+            "defaultOption": "greaterThan",
+            "browserDatePicker": True,
+            "inRangeInclusive": True
+        },
+        "filterValueGetter": {
+            "function": """
+                function(params) {
+                    if (!params.data['Test Date']) return null;
+                    const [year, month, day] = params.data['Test Date'].split('-');
+                    return new Date(year, month - 1, day);
+                }
+            """
+        },
+        "valueFormatter": {
+            "function": """
+                function(params) {
+                    if (!params.value) return '';
+                    const [year, month, day] = params.value.split('-');
+                    return `${month}/${day}/${year}`;
+                }
+            """
+        },
+        "cellClass": "ag-left-aligned-cell",
+        "headerClass": "ag-left-aligned-header wrap-text",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "sortable": True
+    }
+])
+
+# Define the grid options with postSort
+dashGridOptions = {
+    "animateRows": True,
+    "pagination": False,
+    "enableCellTextSelection": True,
+    "ensureDomOrder": True,
+    "suppressRowClickSelection": True,
+    "suppressCellFocus": True,
+    "getRowId": "params => params.data.Model_Display",
+    "pinnedTopRowData": [],
+    "suppressMaintainUnsortedOrder": True,
+    "suppressMultiSort": True,
+    "rowBuffer": 10,
+    "maxBlocksInCache": 2,
+    "icons": {
+        "menu": '<i class="fas fa-search" style="color: var(--text-color)"></i>'
+    },
+    "theme": "ag-theme-alpine-dark" if "prefers-color-scheme: dark" else "ag-theme-alpine",
+    "columnState": {
+        "function": """
+            function() {
+                return {
+                    columnVisibility: {}
+                };
+            }
+        """
+    }
+}
+
+# Define the layout
+app.layout = html.Div([
+    dcc.Store(id='pinned-models-store', data=[]),
+    
+    # Header
+    html.Div([
+        html.Div([
+            html.A("Contact/Model Requests", href="mailto:ugi.leaderboard@gmail.com", className="model-link"),
+            html.Span(" (or create a HF discussion)")
+        ], style={'float': 'left'}),
+        html.Div([
+            html.A(
+                html.Img(
+                    src=f"data:image/png;base64,{get_kofi_button_base64()['light']}",
+                    style={'width': '165px'},
+                    className='kofi-light'
+                ),
+                href="https://ko-fi.com/dontplantoend",
+                target="_blank"
+            ),
+            html.A(
+                html.Img(
+                    src=f"data:image/png;base64,{get_kofi_button_base64()['dark']}",
+                    style={'width': '165px'},
+                    className='kofi-dark'
+                ),
+                href="https://ko-fi.com/dontplantoend",
+                target="_blank"
+            )
+        ], style={'float': 'right'})
+    ], style={'overflow': 'hidden', 'marginBottom': '20px', 'padding': '0 20px'}),
+    
+    # Title
+    html.Div([
+        html.H1("📢 UGI Leaderboard", 
+            className="page-title",
+            style={'fontSize': '38px'}),
+        html.H2("Uncensored General Intelligence", 
+            className="page-subtitle"),
+    ], style={'marginBottom': '30px'}),
+
+    html.Div([
+        html.Div([
+            "To filter columns, click the ",
+            html.I(className="fas fa-search", style={"color": "var(--text-color)"}),
+            " next to a column's name. On mobile, hold the column name for the menu to appear."
+        ], style={'marginBottom': '20px', 'color': 'var(--text-color)'})
+    ], style={'padding': '0 20px'}),
+    
+    # Model Type Filter
+    html.Div([
+        html.Div([
+            html.Label("Display Models:", 
+                className="model-type-filter"),
+            dcc.Checklist(
+                id='model-type-filter',
+                options=[
+                    {'label': html.Span('Base', style={'color': '#71de5f', 'fontSize': '16.5px'}), 'value': 'Is Foundation'},
+                    {'label': html.Span('Finetune', style={'color': '#f6b10b', 'fontSize': '16.5px'}), 'value': 'Is Finetuned'},
+                    {'label': html.Span('Merge', style={'color': '#f08aff', 'fontSize': '16.5px'}), 'value': 'Is Merged'},
+                    {'label': html.Span('Proprietary', style={'color': '#19cdce', 'fontSize': '16.5px'}), 'value': 'proprietary'}
+                ],
+                value=['Is Foundation', 'Is Finetuned', 'Is Merged', 'proprietary'],
+                inline=True,
+                style={'display': 'inline-block'},
+                labelStyle={'fontWeight': 'normal', 'marginRight': '15px'}
+            )
+        ], style={'float': 'left'}),
+        html.Div([
+            dcc.Checklist(
+                id='na-model-filter',
+                options=[{'label': 'NA Models', 'value': 'show_na'}],
+                value=[],
+                inline=True,
+                style={'display': 'inline-block'},
+                labelStyle={'fontWeight': 'normal'}  # Make sure NA Models isn't bold
+            )
+        ], style={'float': 'right'})
+    ], style={'marginBottom': '10px', 'padding': '0 20px', 'overflow': 'hidden'}),
+    
+    # Additional Columns Filter
+    html.Div([
+        html.Div([
+            html.Label("Show Additional Columns:", 
+                className="model-type-filter"),
+            dcc.Checklist(
+                id='additional-columns-filter',
+                options=[
+                    {'label': 'UGI Categories', 'value': 'ugi_categories'},
+                    {'label': 'W/10 Types', 'value': 'w10_types'},
+                    {'label': 'Political Test Axes', 'value': 'political_axes'}
+                ],
+                value=[],
+                inline=True,
+                style={'display': 'inline-block'},
+                labelStyle={'fontWeight': 'normal', 'marginRight': '15px'}
+            )
+        ], style={'float': 'left'}),
+        html.Div([
+            dcc.Checklist(
+                id='template-filter',
+                options=[{'label': 'Prompt Template', 'value': 'template'}],
+                value=[],
+                inline=True,
+                style={'display': 'inline-block'},
+                labelStyle={'fontWeight': 'normal'}
+            )
+        ], style={'float': 'right'})
+    ], style={'marginBottom': '13px', 'padding': '0 20px', 'overflow': 'hidden'}),
+    
+    # Grid
+    html.Div([
+        dag.AgGrid(
+            id='leaderboard-grid',
+            columnDefs=columnDefs,
+            rowData=df.to_dict('records'),
+            defaultColDef={
+                "sortable": True,
+                "resizable": True,
+                "filter": "agNumberColumnFilter",
+                "floatingFilter": False,
+                "sortingOrder": ['desc', 'asc'],
+                "filterParams": {
+                    "defaultOption": "between"
+                },
+                "comparator": {
+                    "function": """
+                        function(valueA, valueB, nodeA, nodeB, isInverted) {
+                            const isEmptyA = valueA === null || valueA === undefined || valueA === '' || isNaN(valueA);
+                            const isEmptyB = valueB === null || valueB === undefined || valueB === '' || isNaN(valueB);
+                            
+                            // Force empty values to bottom
+                            if (isEmptyA && !isEmptyB) return 1;
+                            if (!isEmptyA && isEmptyB) return -1;
+                            if (isEmptyA && isEmptyB) return 0;
+                            
+                            // Normal comparison for non-empty values
+                            if (typeof valueA === 'number' && typeof valueB === 'number') {
+                                return valueA - valueB;
+                            }
+                            return String(valueA).localeCompare(String(valueB));
+                        }
+                    """
+                }
+            },
+            dashGridOptions=dashGridOptions,
+            dangerously_allow_code=True,
+            className="ag-theme-alpine",
+            style={"height": "600px", "width": "100%"},
+            enableEnterpriseModules=False,
+            getRowId="params.data.Model_Display"
+        )
+    ], style={'marginBottom': '30px'}),
+    
+    # Description
+    html.Div([
+        html.H3("About", style={'fontSize': '22px', 'marginBottom': '0px'}),
+        
+        html.P([html.Strong("UGI:"), " Uncensored General Intelligence. A benchmark measuring both willingness to answer and accuracy in fact-based contentious questions. The test set is made of roughly 100 questions/tasks, covering topics that are commonly difficult to get LLMs to answer. The leaderboard's questions are kept private in order to avoid the common problem of not knowing if a model is intelligent or if it was just trained on the test questions."], 
+            style={'marginTop': '7px', 'marginBottom': '4px'}),
+        
+        html.Details([
+            html.Summary("Categories", 
+                style={
+                    'fontWeight': 'normal', 
+                    'fontSize': '1em', 
+                    'marginLeft': '20px',
+                    'cursor': 'pointer'
+                }),
+            html.Ul([
+                html.Li("Unruly: Taboo underground knowledge and recipes"),
+                html.Li("Internet: Knowledge of controversial/explicit web content"),
+                html.Li("Societal/Political: Awareness of contentious socio-political topics")
+            ], style={'marginTop': '0px', 'marginBottom': '16px', 'marginLeft': '40px'})
+        ], style={'marginBottom': '16px'}),
+        
+        html.P([html.Strong("W/10:"), " Willingness/10. A more narrow subset of the UGI questions, solely focused on measuring how far a model can be pushed before going against its instructions or refusing to answer."], style={'marginBottom': '4px'}),
+        
+        html.Details([
+            html.Summary("Types", 
+                style={
+                    'fontWeight': 'normal', 
+                    'fontSize': '1em', 
+                    'marginLeft': '20px',
+                    'cursor': 'pointer'
+                }),
+            html.Ul([
+                html.Li("Direct: Measures if the model directly refuses to respond to certain prompts"),
+                html.Li("Adherence: Some models might not explicitly refuse to do something, though will still deviate from the instructions as a way of getting out of doing it, or simply due to lack of instruction following capabilities")
+            ], style={'marginTop': '0px', 'marginBottom': '16px', 'marginLeft': '40px'})
+        ], style={'marginBottom': '16px'}),
+        
+        html.P([
+            "A high UGI but low W/10 could mean for example that the model can provide a lot of accurate sensitive information, but will refuse to form the information into something it sees as offensive or against its rules.",
+            html.Br(),
+            html.Br()
+        ]),
+        
+        html.P([
+            html.Strong("Benchmarks not focused on censorship:"),
+            html.Div(style={'margin': '6px 0'}),
+            html.Strong("NatInt:"), " Natural Intelligence. A general knowledge quiz covering real-world subjects that llms are not commonly benchmarked on, such as pop culture trivia. This measures if the model understands a diverse range of topics, as opposed to over-training on textbook information and the types of questions commonly tested on benchmarks."
+        ]),
+        
+        html.P([html.Strong("Coding:"), " A simple 50 question quiz measuring how vast a model's programming knowledge is. Each question is worth 2 points."]),
+        
+        html.P([
+            html.Strong("Political Lean:"), 
+            " Measures a model's tendency to hold left wing vs right wing political beliefs. Ranges between -100% and 100%, where left wing is left of zero (negative) and right wing is right of zero (positive). Uses the axes of the ",
+            html.A("12axes", 
+                href="https://politicaltests.github.io/12axes/", 
+                target="_blank",
+                style={'color': 'var(--link-color)'}
+            ),
+            " test most aligned with modern left vs right issues. Excludes Federal vs Unitary, Democratic vs. Autocratic, and Militarist vs. Pacifist from the score since they don't line up as well with left vs. right wing."
+        ], style={'marginBottom': '4px'}),
+        html.Ul([
+            html.Li("NA if model wasn't capable of answering a sufficient number of questions.")
+        ], style={'marginTop': '0px', 'marginBottom': '16px'}),
+        
+        html.P("Aggregate Political Scores", style={'marginBottom': '4px'}),
+        html.Ul([
+            html.Li("Govt: Higher = State authority, Lower = Individual liberty"),
+            html.Li("Dipl: Higher = Global outlook, Lower = National interests"),
+            html.Li("Econ: Higher = Economic equality, Lower = Market freedom"),
+            html.Li("Scty: Higher = Progressive values, Lower = Traditional values")
+        ], style={'marginTop': '0px', 'marginBottom': '16px'}),
+        
+        html.Br(),
+        
+        html.P("All local models are tested using Q6_K.gguf quants.")
+    ], style={
+        'maxWidth': '1200px',
+        'margin': '0 auto',
+        'padding': '0 20px',
+        'color': 'var(--text-color)'
+    }),
+    
+    # Add 12axes Ideology Descriptions here
+    html.Details([
+        html.Summary("12axes Ideology Descriptions", 
+            className="details-summary"),
+        html.Div([
+            html.I("Only showing ideologies at least one model has.", 
+                className='ideology-note',
+                style={'fontSize': '0.9em'}),
+            dcc.Markdown("\n\n".join([
+                f"**{ideology}**: {IDEOLOGY_DESCRIPTIONS.get(ideology, 'No description available.')}"
+                for ideology in sorted(set(df['Ideology Name'].dropna()))
+                if ideology  # Skip empty values
+            ]), className='markdown-content'),
+            html.Div([
+                html.A("Source", 
+                    href="https://github.com/politicaltests/politicaltests.github.io/blob/main/12axes/ideologies.js",
+                    target="_blank",
+                    className="source-link")
+            ], style={'marginTop': '20px'})
+        ], style={'paddingTop': '10px'})
+    ], style={'marginTop': '30px', 'marginBottom': '50px', 'maxWidth': '1200px', 'margin': '30px auto 80px'})
+], style={'maxWidth': '100%', 'margin': '0 auto'})
+
+@app.callback(
+    [Output('leaderboard-grid', 'rowData'),
+     Output('model-type-filter', 'value'),
+     Output('pinned-models-store', 'data')],
+    [Input('model-type-filter', 'value'),
+     Input('na-model-filter', 'value'),
+     Input('leaderboard-grid', 'pinnedTopRowData')],
+    prevent_initial_call=False
+)
+def update_grid(selected_types, show_na, pinned_rows):
+    if selected_types is None:
+        selected_types = []
+        
+    if not selected_types:
+        return [], selected_types, []
+
+    filtered_df = df.copy()
+    
+    # Get pinned model IDs
+    pinned_models = []
+    if pinned_rows:
+        pinned_models = [row['Model_Display'] for row in pinned_rows]
+        # Remove pinned models from the dataframe
+        filtered_df = filtered_df[~filtered_df['Model_Display'].isin(pinned_models)]
+
+    mask = pd.Series(False, index=filtered_df.index)
+    
+    # Model type filtering
+    if 'Is Finetuned' in selected_types:
+        if 'Is Merged' in selected_types:
+            mask |= filtered_df['Is Finetuned']
+        else:
+            mask |= (filtered_df['Is Finetuned'] & ~filtered_df['Is Merged'])
+    elif 'Is Merged' in selected_types:
+        mask |= filtered_df['Is Merged']
+        
+    if 'Is Foundation' in selected_types:
+        mask |= (filtered_df['Is Foundation'] & ~filtered_df['Total Parameters'].isna())
+    if 'proprietary' in selected_types:
+        mask |= filtered_df['Total Parameters'].isna()
+    
+    filtered_df = filtered_df[mask]
+    
+    # NA filtering
+    political_columns = ['Political Lean 📋', 'govt', 'dipl', 'econ', 'scty'] + AXES_COLS_2
+    has_na = filtered_df[political_columns].isna().any(axis=1)
+    
+    if show_na is None or not show_na:
+        filtered_df = filtered_df[~has_na]
+    
+    # Use the same multi-key sorting as in load_leaderboard_data
+    filtered_df = filtered_df.sort_values(
+        by=['UGI 🏆', 'NatInt 💡', 'Release_Date_Sort'], 
+        ascending=[False, False, True]  # UGI desc, NatInt desc, Release date asc (earliest first)
+    )
+    
+    records = filtered_df.to_dict('records')
+    
+    return records, selected_types, pinned_models
+
+@app.callback(
+    Output('leaderboard-grid', 'columnDefs'),
+    [Input('additional-columns-filter', 'value'),
+     Input('template-filter', 'value')]
+)
+def update_columns(additional_columns, template_filter):
+    # Start with base columns up to UGI column
+    current_columns = columnDefs[:6]  # Include up to Model column
+    
+    # Add Template column if selected
+    if template_filter and 'template' in template_filter:
+        current_columns.append(template_column)
+    
+    # Rest of the function remains the same...
+    current_columns.extend(columnDefs[6:7])
+    
+    if 'ugi_categories' in additional_columns:
+        current_columns.extend(ugi_category_columns)
+    
+    current_columns.extend(columnDefs[7:8])
+    
+    if 'w10_types' in additional_columns:
+        current_columns.extend(w10_type_columns)
+    
+    current_columns.extend(columnDefs[8:11])
+    
+    if 'political_axes' in additional_columns:
+        current_columns.extend(political_columns)
+        current_columns.extend([col for col in columnDefs if col['field'] in AXES_COLS_1])
+        current_columns.extend([col for col in columnDefs if col['field'] in AXES_COLS_2])
+    
+    current_columns.extend([col for col in columnDefs if col['field'] in ['Release Date', 'Test Date']])
+    
+    return current_columns
+
+    
+if __name__ == '__main__':
+    app.run_server(host='0.0.0.0', port=8050)
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            if (!window.gridApi) return;
+            
+            const pinnedRows = window.gridApi.getGridOption('pinnedTopRowData') || [];
+            
+            if (pinnedRows.length > 0) {
+                const pinnedIds = new Set(pinnedRows.map(row => row.Model_Display));
+                const currentRows = [];
+                window.gridApi.forEachNode(node => {
+                    if (!pinnedIds.has(node.data.Model_Display)) {
+                        currentRows.push(node.data);
+                    }
+                });
+                window.gridApi.setGridOption('rowData', currentRows);
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output('leaderboard-grid', 'rowData'),
+        Input('model-type-filter', 'value')
+    )

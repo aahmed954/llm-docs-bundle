@@ -1,0 +1,1 @@
+var e;const t=((e=globalThis.__sveltekit_1ezum8n)==null?void 0:e.base)??"/docs/text-generation-inference/main/en";var s;const a=((s=globalThis.__sveltekit_1ezum8n)==null?void 0:s.assets)??t;export{a,t as b};

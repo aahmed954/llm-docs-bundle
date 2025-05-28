@@ -1,0 +1,2 @@
+User-agent: *
+Sitemap: https://docs.runpod.io/sitemap.xml

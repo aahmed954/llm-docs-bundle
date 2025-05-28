@@ -1,0 +1,113 @@
+import{s as Ye,n as ze,o as Re}from"../chunks/scheduler.362310b7.js";import{S as _e,i as He,g as i,s as n,r as o,A as Fe,h as M,f as l,c as a,j as ve,u as p,x as u,k as Xe,y as Pe,a as s,v as J,d as y,t as T,w as r}from"../chunks/index.57dfc70d.js";import{C as F}from"../chunks/CodeBlock.5d40996c.js";import{H as c,E as Le}from"../chunks/index.fa158b42.js";function De(Be){let U,P,_,L,m,D,w,O,I,Ge='<li><a href="#text-generation-inference-custom-api">Text Generation Inference custom API</a></li> <li><a href="#openai-messages-api">OpenAI Messages API</a><ul><li><a href="#making-a-request">Making a Request</a></li> <li><a href="#streaming">Streaming</a></li> <li><a href="#synchronous">Synchronous</a></li> <li><a href="#hugging-face-inference-endpoints">Hugging Face Inference Endpoints</a></li> <li><a href="#cloud-providers">Cloud Providers</a><ul><li><a href="#amazon-sagemaker">Amazon SageMaker</a></li></ul></li></ul></li>',K,h,qe="The HTTP API is a RESTful API that allows you to interact with the text-generation-inference component. Two endpoints are available:",ee,j,Ze='<li>Text Generation Inference <a href="https://huggingface.github.io/text-generation-inference/" rel="nofollow">custom API</a></li> <li>OpenAI’s <a href="#openai-messages-api">Messages API</a></li>',te,g,le,d,Qe='Check the <a href="https://huggingface.github.io/text-generation-inference/" rel="nofollow">API documentation</a> for more information on how to interact with the Text Generation Inference API.',se,f,ne,C,$e="Text Generation Inference (TGI) now supports the Messages API, which is fully compatible with the OpenAI Chat Completion API. This feature is available starting from version 1.4.0. You can use OpenAI’s client libraries or third-party libraries expecting OpenAI schema to interact with TGI’s Messages API. Below are some examples of how to utilize this compatibility.",ae,b,We="<p><strong>Note:</strong> The Messages API is supported from TGI version 1.4.0 and above. Ensure you are using a compatible version to access this feature.</p>",ie,B,oe,G,Se="You can make a request to TGI’s Messages API using <code>curl</code>. Here’s an example:",Me,q,pe,Z,Je,Q,Ee="You can also use OpenAI’s Python client library to make a streaming request. Here’s how:",ye,$,Te,W,re,S,Ae="If you prefer to make a synchronous request, you can do so like this:",ue,E,ce,A,Ue,k,ke=`The Messages API is integrated with <a href="https://huggingface.co/inference-endpoints/dedicated" rel="nofollow">Inference Endpoints</a>.
+Every endpoint that uses “Text Generation Inference” with an LLM, which has a chat template can now be used. Below is an example of how to use IE with TGI using OpenAI’s Python client library:`,me,x,xe="<p><strong>Note:</strong> Make sure to replace <code>base_url</code> with your endpoint URL and to include <code>v1/</code> at the end of the URL. The <code>api_key</code> should be replaced with your Hugging Face API key.</p>",we,N,Ie,V,he,v,Ne="TGI can be deployed on various cloud providers for scalable and robust text generation. One such provider is Amazon SageMaker, which has recently added support for TGI. Here’s how you can deploy TGI on Amazon SageMaker:",je,X,ge,Y,Ve="Amazon Sagemaker natively supports the message API:",de,z,fe,R,Ce,H,be;return m=new c({props:{title:"HTTP API Reference",local:"http-api-reference",headingTag:"h1"}}),w=new c({props:{title:"Table of Contents",local:"table-of-contents",headingTag:"h4"}}),g=new c({props:{title:"Text Generation Inference custom API",local:"text-generation-inference-custom-api",headingTag:"h2"}}),f=new c({props:{title:"OpenAI Messages API",local:"openai-messages-api",headingTag:"h2"}}),B=new c({props:{title:"Making a Request",local:"making-a-request",headingTag:"h2"}}),q=new F({props:{code:"Y3VybCUyMGxvY2FsaG9zdCUzQTMwMDAlMkZ2MSUyRmNoYXQlMkZjb21wbGV0aW9ucyUyMCU1QyUwQSUyMCUyMCUyMCUyMC1YJTIwUE9TVCUyMCU1QyUwQSUyMCUyMCUyMCUyMC1kJTIwJyU3QiUwQSUyMCUyMCUyMm1vZGVsJTIyJTNBJTIwJTIydGdpJTIyJTJDJTBBJTIwJTIwJTIybWVzc2FnZXMlMjIlM0ElMjAlNUIlMEElMjAlMjAlMjAlMjAlN0IlMEElMjAlMjAlMjAlMjAlMjAlMjAlMjJyb2xlJTIyJTNBJTIwJTIyc3lzdGVtJTIyJTJDJTBBJTIwJTIwJTIwJTIwJTIwJTIwJTIyY29udGVudCUyMiUzQSUyMCUyMllvdSUyMGFyZSUyMGElMjBoZWxwZnVsJTIwYXNzaXN0YW50LiUyMiUwQSUyMCUyMCUyMCUyMCU3RCUyQyUwQSUyMCUyMCUyMCUyMCU3QiUwQSUyMCUyMCUyMCUyMCUyMCUyMCUyMnJvbGUlMjIlM0ElMjAlMjJ1c2VyJTIyJTJDJTBBJTIwJTIwJTIwJTIwJTIwJTIwJTIyY29udGVudCUyMiUzQSUyMCUyMldoYXQlMjBpcyUyMGRlZXAlMjBsZWFybmluZyUzRiUyMiUwQSUyMCUyMCUyMCUyMCU3RCUwQSUyMCUyMCU1RCUyQyUwQSUyMCUyMCUyMnN0cmVhbSUyMiUzQSUyMHRydWUlMkMlMEElMjAlMjAlMjJtYXhfdG9rZW5zJTIyJTNBJTIwMjAlMEElN0QnJTIwJTVDJTBBJTIwJTIwJTIwJTIwLUglMjAnQ29udGVudC1UeXBlJTNBJTIwYXBwbGljYXRpb24lMkZqc29uJw==",highlighted:`curl localhost:3000/v1/chat/completions \\
+    -X POST \\
+    -d <span class="hljs-string">&#x27;{
+  &quot;model&quot;: &quot;tgi&quot;,
+  &quot;messages&quot;: [
+    {
+      &quot;role&quot;: &quot;system&quot;,
+      &quot;content&quot;: &quot;You are a helpful assistant.&quot;
+    },
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;What is deep learning?&quot;
+    }
+  ],
+  &quot;stream&quot;: true,
+  &quot;max_tokens&quot;: 20
+}&#x27;</span> \\
+    -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span>`,wrap:!1}}),Z=new c({props:{title:"Streaming",local:"streaming",headingTag:"h2"}}),$=new F({props:{code:"ZnJvbSUyMG9wZW5haSUyMGltcG9ydCUyME9wZW5BSSUwQSUwQSUyMyUyMGluaXQlMjB0aGUlMjBjbGllbnQlMjBidXQlMjBwb2ludCUyMGl0JTIwdG8lMjBUR0klMEFjbGllbnQlMjAlM0QlMjBPcGVuQUkoJTBBJTIwJTIwJTIwJTIwYmFzZV91cmwlM0QlMjJodHRwJTNBJTJGJTJGbG9jYWxob3N0JTNBMzAwMCUyRnYxJTIyJTJDJTBBJTIwJTIwJTIwJTIwYXBpX2tleSUzRCUyMi0lMjIlMEEpJTBBJTBBY2hhdF9jb21wbGV0aW9uJTIwJTNEJTIwY2xpZW50LmNoYXQuY29tcGxldGlvbnMuY3JlYXRlKCUwQSUyMCUyMCUyMCUyMG1vZGVsJTNEJTIydGdpJTIyJTJDJTBBJTIwJTIwJTIwJTIwbWVzc2FnZXMlM0QlNUIlMEElMjAlMjAlMjAlMjAlMjAlMjAlMjAlMjAlN0IlMjJyb2xlJTIyJTNBJTIwJTIyc3lzdGVtJTIyJTJDJTIwJTIyY29udGVudCUyMiUzQSUyMCUyMllvdSUyMGFyZSUyMGElMjBoZWxwZnVsJTIwYXNzaXN0YW50LiUyMiUyMCU3RCUyQyUwQSUyMCUyMCUyMCUyMCUyMCUyMCUyMCUyMCU3QiUyMnJvbGUlMjIlM0ElMjAlMjJ1c2VyJTIyJTJDJTIwJTIyY29udGVudCUyMiUzQSUyMCUyMldoYXQlMjBpcyUyMGRlZXAlMjBsZWFybmluZyUzRiUyMiU3RCUwQSUyMCUyMCUyMCUyMCU1RCUyQyUwQSUyMCUyMCUyMCUyMHN0cmVhbSUzRFRydWUlMEEpJTBBJTBBJTIzJTIwaXRlcmF0ZSUyMGFuZCUyMHByaW50JTIwc3RyZWFtJTBBZm9yJTIwbWVzc2FnZSUyMGluJTIwY2hhdF9jb21wbGV0aW9uJTNBJTBBJTIwJTIwJTIwJTIwcHJpbnQobWVzc2FnZSk=",highlighted:`<span class="hljs-keyword">from</span> openai <span class="hljs-keyword">import</span> OpenAI
+
+<span class="hljs-comment"># init the client but point it to TGI</span>
+client = OpenAI(
+    base_url=<span class="hljs-string">&quot;http://localhost:3000/v1&quot;</span>,
+    api_key=<span class="hljs-string">&quot;-&quot;</span>
+)
+
+chat_completion = client.chat.completions.create(
+    model=<span class="hljs-string">&quot;tgi&quot;</span>,
+    messages=[
+        {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;system&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;You are a helpful assistant.&quot;</span> },
+        {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;What is deep learning?&quot;</span>}
+    ],
+    stream=<span class="hljs-literal">True</span>
+)
+
+<span class="hljs-comment"># iterate and print stream</span>
+<span class="hljs-keyword">for</span> message <span class="hljs-keyword">in</span> chat_completion:
+    <span class="hljs-built_in">print</span>(message)`,wrap:!1}}),W=new c({props:{title:"Synchronous",local:"synchronous",headingTag:"h2"}}),E=new F({props:{code:"ZnJvbSUyMG9wZW5haSUyMGltcG9ydCUyME9wZW5BSSUwQSUwQSUyMyUyMGluaXQlMjB0aGUlMjBjbGllbnQlMjBidXQlMjBwb2ludCUyMGl0JTIwdG8lMjBUR0klMEFjbGllbnQlMjAlM0QlMjBPcGVuQUkoJTBBJTIwJTIwJTIwJTIwYmFzZV91cmwlM0QlMjJodHRwJTNBJTJGJTJGbG9jYWxob3N0JTNBMzAwMCUyRnYxJTIyJTJDJTBBJTIwJTIwJTIwJTIwYXBpX2tleSUzRCUyMi0lMjIlMEEpJTBBJTBBY2hhdF9jb21wbGV0aW9uJTIwJTNEJTIwY2xpZW50LmNoYXQuY29tcGxldGlvbnMuY3JlYXRlKCUwQSUyMCUyMCUyMCUyMG1vZGVsJTNEJTIydGdpJTIyJTJDJTBBJTIwJTIwJTIwJTIwbWVzc2FnZXMlM0QlNUIlMEElMjAlMjAlMjAlMjAlMjAlMjAlMjAlMjAlN0IlMjJyb2xlJTIyJTNBJTIwJTIyc3lzdGVtJTIyJTJDJTIwJTIyY29udGVudCUyMiUzQSUyMCUyMllvdSUyMGFyZSUyMGElMjBoZWxwZnVsJTIwYXNzaXN0YW50LiUyMiUyMCU3RCUyQyUwQSUyMCUyMCUyMCUyMCUyMCUyMCUyMCUyMCU3QiUyMnJvbGUlMjIlM0ElMjAlMjJ1c2VyJTIyJTJDJTIwJTIyY29udGVudCUyMiUzQSUyMCUyMldoYXQlMjBpcyUyMGRlZXAlMjBsZWFybmluZyUzRiUyMiU3RCUwQSUyMCUyMCUyMCUyMCU1RCUyQyUwQSUyMCUyMCUyMCUyMHN0cmVhbSUzREZhbHNlJTBBKSUwQSUwQXByaW50KGNoYXRfY29tcGxldGlvbik=",highlighted:`<span class="hljs-keyword">from</span> openai <span class="hljs-keyword">import</span> OpenAI
+
+<span class="hljs-comment"># init the client but point it to TGI</span>
+client = OpenAI(
+    base_url=<span class="hljs-string">&quot;http://localhost:3000/v1&quot;</span>,
+    api_key=<span class="hljs-string">&quot;-&quot;</span>
+)
+
+chat_completion = client.chat.completions.create(
+    model=<span class="hljs-string">&quot;tgi&quot;</span>,
+    messages=[
+        {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;system&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;You are a helpful assistant.&quot;</span> },
+        {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;What is deep learning?&quot;</span>}
+    ],
+    stream=<span class="hljs-literal">False</span>
+)
+
+<span class="hljs-built_in">print</span>(chat_completion)`,wrap:!1}}),A=new c({props:{title:"Hugging Face Inference Endpoints",local:"hugging-face-inference-endpoints",headingTag:"h2"}}),N=new F({props:{code:"ZnJvbSUyMG9wZW5haSUyMGltcG9ydCUyME9wZW5BSSUwQSUwQSUyMyUyMGluaXQlMjB0aGUlMjBjbGllbnQlMjBidXQlMjBwb2ludCUyMGl0JTIwdG8lMjBUR0klMEFjbGllbnQlMjAlM0QlMjBPcGVuQUkoJTBBJTIwJTIwJTIwJTIwJTIzJTIwcmVwbGFjZSUyMHdpdGglMjB5b3VyJTIwZW5kcG9pbnQlMjB1cmwlMkMlMjBtYWtlJTIwc3VyZSUyMHRvJTIwaW5jbHVkZSUyMCUyMnYxJTJGJTIyJTIwYXQlMjB0aGUlMjBlbmQlMEElMjAlMjAlMjAlMjBiYXNlX3VybCUzRCUyMmh0dHBzJTNBJTJGJTJGdmx6ejEwZXEzZm9sMzQyOS51cy1lYXN0LTEuYXdzLmVuZHBvaW50cy5odWdnaW5nZmFjZS5jbG91ZCUyRnYxJTJGJTIyJTJDJTBBJTIwJTIwJTIwJTIwJTIzJTIwcmVwbGFjZSUyMHdpdGglMjB5b3VyJTIwQVBJJTIwa2V5JTBBJTIwJTIwJTIwJTIwYXBpX2tleSUzRCUyMmhmX1hYWCUyMiUwQSklMEElMEFjaGF0X2NvbXBsZXRpb24lMjAlM0QlMjBjbGllbnQuY2hhdC5jb21wbGV0aW9ucy5jcmVhdGUoJTBBJTIwJTIwJTIwJTIwbW9kZWwlM0QlMjJ0Z2klMjIlMkMlMEElMjAlMjAlMjAlMjBtZXNzYWdlcyUzRCU1QiUwQSUyMCUyMCUyMCUyMCUyMCUyMCUyMCUyMCU3QiUyMnJvbGUlMjIlM0ElMjAlMjJzeXN0ZW0lMjIlMkMlMjAlMjJjb250ZW50JTIyJTNBJTIwJTIyWW91JTIwYXJlJTIwYSUyMGhlbHBmdWwlMjBhc3Npc3RhbnQuJTIyJTIwJTdEJTJDJTBBJTIwJTIwJTIwJTIwJTIwJTIwJTIwJTIwJTdCJTIycm9sZSUyMiUzQSUyMCUyMnVzZXIlMjIlMkMlMjAlMjJjb250ZW50JTIyJTNBJTIwJTIyV2hhdCUyMGlzJTIwZGVlcCUyMGxlYXJuaW5nJTNGJTIyJTdEJTBBJTIwJTIwJTIwJTIwJTVEJTJDJTBBJTIwJTIwJTIwJTIwc3RyZWFtJTNEVHJ1ZSUwQSklMEElMEElMjMlMjBpdGVyYXRlJTIwYW5kJTIwcHJpbnQlMjBzdHJlYW0lMEFmb3IlMjBtZXNzYWdlJTIwaW4lMjBjaGF0X2NvbXBsZXRpb24lM0ElMEElMjAlMjAlMjAlMjBwcmludChtZXNzYWdlLmNob2ljZXMlNUIwJTVELmRlbHRhLmNvbnRlbnQlMkMlMjBlbmQlM0QlMjIlMjIp",highlighted:`<span class="hljs-keyword">from</span> openai <span class="hljs-keyword">import</span> OpenAI
+
+<span class="hljs-comment"># init the client but point it to TGI</span>
+client = OpenAI(
+    <span class="hljs-comment"># replace with your endpoint url, make sure to include &quot;v1/&quot; at the end</span>
+    base_url=<span class="hljs-string">&quot;https://vlzz10eq3fol3429.us-east-1.aws.endpoints.huggingface.cloud/v1/&quot;</span>,
+    <span class="hljs-comment"># replace with your API key</span>
+    api_key=<span class="hljs-string">&quot;hf_XXX&quot;</span>
+)
+
+chat_completion = client.chat.completions.create(
+    model=<span class="hljs-string">&quot;tgi&quot;</span>,
+    messages=[
+        {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;system&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;You are a helpful assistant.&quot;</span> },
+        {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;What is deep learning?&quot;</span>}
+    ],
+    stream=<span class="hljs-literal">True</span>
+)
+
+<span class="hljs-comment"># iterate and print stream</span>
+<span class="hljs-keyword">for</span> message <span class="hljs-keyword">in</span> chat_completion:
+    <span class="hljs-built_in">print</span>(message.choices[<span class="hljs-number">0</span>].delta.content, end=<span class="hljs-string">&quot;&quot;</span>)`,wrap:!1}}),V=new c({props:{title:"Cloud Providers",local:"cloud-providers",headingTag:"h2"}}),X=new c({props:{title:"Amazon SageMaker",local:"amazon-sagemaker",headingTag:"h2"}}),z=new F({props:{code:"aW1wb3J0JTIwanNvbiUwQWltcG9ydCUyMHNhZ2VtYWtlciUwQWltcG9ydCUyMGJvdG8zJTBBZnJvbSUyMHNhZ2VtYWtlci5odWdnaW5nZmFjZSUyMGltcG9ydCUyMEh1Z2dpbmdGYWNlTW9kZWwlMkMlMjBnZXRfaHVnZ2luZ2ZhY2VfbGxtX2ltYWdlX3VyaSUwQSUwQXRyeSUzQSUwQSUyMHJvbGUlMjAlM0QlMjBzYWdlbWFrZXIuZ2V0X2V4ZWN1dGlvbl9yb2xlKCklMEFleGNlcHQlMjBWYWx1ZUVycm9yJTNBJTBBJTIwaWFtJTIwJTNEJTIwYm90bzMuY2xpZW50KCdpYW0nKSUwQSUyMHJvbGUlMjAlM0QlMjBpYW0uZ2V0X3JvbGUoUm9sZU5hbWUlM0Qnc2FnZW1ha2VyX2V4ZWN1dGlvbl9yb2xlJyklNUInUm9sZSclNUQlNUInQXJuJyU1RCUwQSUwQSUyMyUyMEh1YiUyME1vZGVsJTIwY29uZmlndXJhdGlvbi4lMjBodHRwcyUzQSUyRiUyRmh1Z2dpbmdmYWNlLmNvJTJGbW9kZWxzJTBBaHViJTIwJTNEJTIwJTdCJTBBJTIwJ0hGX01PREVMX0lEJyUzQSdIdWdnaW5nRmFjZUg0JTJGemVwaHlyLTdiLWJldGEnJTJDJTBBJTIwJ1NNX05VTV9HUFVTJyUzQSUyMGpzb24uZHVtcHMoMSklMkMlMEElN0QlMEElMEElMjMlMjBjcmVhdGUlMjBIdWdnaW5nJTIwRmFjZSUyME1vZGVsJTIwQ2xhc3MlMEFodWdnaW5nZmFjZV9tb2RlbCUyMCUzRCUyMEh1Z2dpbmdGYWNlTW9kZWwoJTBBJTIwaW1hZ2VfdXJpJTNEZ2V0X2h1Z2dpbmdmYWNlX2xsbV9pbWFnZV91cmkoJTIyaHVnZ2luZ2ZhY2UlMjIlMkN2ZXJzaW9uJTNEJTIyMy4zLjElMjIpJTJDJTBBJTIwZW52JTNEaHViJTJDJTBBJTIwcm9sZSUzRHJvbGUlMkMlMEEpJTBBJTBBJTIzJTIwZGVwbG95JTIwbW9kZWwlMjB0byUyMFNhZ2VNYWtlciUyMEluZmVyZW5jZSUwQXByZWRpY3RvciUyMCUzRCUyMGh1Z2dpbmdmYWNlX21vZGVsLmRlcGxveSglMEElMjBpbml0aWFsX2luc3RhbmNlX2NvdW50JTNEMSUyQyUwQSUyMGluc3RhbmNlX3R5cGUlM0QlMjJtbC5nNS4yeGxhcmdlJTIyJTJDJTBBJTIwY29udGFpbmVyX3N0YXJ0dXBfaGVhbHRoX2NoZWNrX3RpbWVvdXQlM0QzMDAlMkMlMEElMjAlMjApJTBBJTBBJTIzJTIwc2VuZCUyMHJlcXVlc3QlMEFwcmVkaWN0b3IucHJlZGljdCglN0IlMEElMjJtZXNzYWdlcyUyMiUzQSUyMCU1QiUwQSUyMCUyMCUyMCUyMCUyMCUyMCUyMCUyMCU3QiUyMnJvbGUlMjIlM0ElMjAlMjJzeXN0ZW0lMjIlMkMlMjAlMjJjb250ZW50JTIyJTNBJTIwJTIyWW91JTIwYXJlJTIwYSUyMGhlbHBmdWwlMjBhc3Npc3RhbnQuJTIyJTIwJTdEJTJDJTBBJTIwJTIwJTIwJTIwJTIwJTIwJTIwJTIwJTdCJTIycm9sZSUyMiUzQSUyMCUyMnVzZXIlMjIlMkMlMjAlMjJjb250ZW50JTIyJTNBJTIwJTIyV2hhdCUyMGlzJTIwZGVlcCUyMGxlYXJuaW5nJTNGJTIyJTdEJTBBJTIwJTIwJTIwJTIwJTVEJTBBJTdEKQ==",highlighted:`<span class="hljs-keyword">import</span> json
+<span class="hljs-keyword">import</span> sagemaker
+<span class="hljs-keyword">import</span> boto3
+<span class="hljs-keyword">from</span> sagemaker.huggingface <span class="hljs-keyword">import</span> HuggingFaceModel, get_huggingface_llm_image_uri
+
+<span class="hljs-keyword">try</span>:
+ role = sagemaker.get_execution_role()
+<span class="hljs-keyword">except</span> ValueError:
+ iam = boto3.client(<span class="hljs-string">&#x27;iam&#x27;</span>)
+ role = iam.get_role(RoleName=<span class="hljs-string">&#x27;sagemaker_execution_role&#x27;</span>)[<span class="hljs-string">&#x27;Role&#x27;</span>][<span class="hljs-string">&#x27;Arn&#x27;</span>]
+
+<span class="hljs-comment"># Hub Model configuration. https://huggingface.co/models</span>
+hub = {
+ <span class="hljs-string">&#x27;HF_MODEL_ID&#x27;</span>:<span class="hljs-string">&#x27;HuggingFaceH4/zephyr-7b-beta&#x27;</span>,
+ <span class="hljs-string">&#x27;SM_NUM_GPUS&#x27;</span>: json.dumps(<span class="hljs-number">1</span>),
+}
+
+<span class="hljs-comment"># create Hugging Face Model Class</span>
+huggingface_model = HuggingFaceModel(
+ image_uri=get_huggingface_llm_image_uri(<span class="hljs-string">&quot;huggingface&quot;</span>,version=<span class="hljs-string">&quot;3.3.1&quot;</span>),
+ env=hub,
+ role=role,
+)
+
+<span class="hljs-comment"># deploy model to SageMaker Inference</span>
+predictor = huggingface_model.deploy(
+ initial_instance_count=<span class="hljs-number">1</span>,
+ instance_type=<span class="hljs-string">&quot;ml.g5.2xlarge&quot;</span>,
+ container_startup_health_check_timeout=<span class="hljs-number">300</span>,
+  )
+
+<span class="hljs-comment"># send request</span>
+predictor.predict({
+<span class="hljs-string">&quot;messages&quot;</span>: [
+        {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;system&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;You are a helpful assistant.&quot;</span> },
+        {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;What is deep learning?&quot;</span>}
+    ]
+})`,wrap:!1}}),R=new Le({props:{source:"https://github.com/huggingface/text-generation-inference/blob/main/docs/source/reference/api_reference.md"}}),{c(){U=i("meta"),P=n(),_=i("p"),L=n(),o(m.$$.fragment),D=n(),o(w.$$.fragment),O=n(),I=i("ul"),I.innerHTML=Ge,K=n(),h=i("p"),h.textContent=qe,ee=n(),j=i("ul"),j.innerHTML=Ze,te=n(),o(g.$$.fragment),le=n(),d=i("p"),d.innerHTML=Qe,se=n(),o(f.$$.fragment),ne=n(),C=i("p"),C.textContent=$e,ae=n(),b=i("blockquote"),b.innerHTML=We,ie=n(),o(B.$$.fragment),oe=n(),G=i("p"),G.innerHTML=Se,Me=n(),o(q.$$.fragment),pe=n(),o(Z.$$.fragment),Je=n(),Q=i("p"),Q.textContent=Ee,ye=n(),o($.$$.fragment),Te=n(),o(W.$$.fragment),re=n(),S=i("p"),S.textContent=Ae,ue=n(),o(E.$$.fragment),ce=n(),o(A.$$.fragment),Ue=n(),k=i("p"),k.innerHTML=ke,me=n(),x=i("blockquote"),x.innerHTML=xe,we=n(),o(N.$$.fragment),Ie=n(),o(V.$$.fragment),he=n(),v=i("p"),v.textContent=Ne,je=n(),o(X.$$.fragment),ge=n(),Y=i("p"),Y.textContent=Ve,de=n(),o(z.$$.fragment),fe=n(),o(R.$$.fragment),Ce=n(),H=i("p"),this.h()},l(e){const t=Fe("svelte-u9bgzb",document.head);U=M(t,"META",{name:!0,content:!0}),t.forEach(l),P=a(e),_=M(e,"P",{}),ve(_).forEach(l),L=a(e),p(m.$$.fragment,e),D=a(e),p(w.$$.fragment,e),O=a(e),I=M(e,"UL",{"data-svelte-h":!0}),u(I)!=="svelte-1yjeuvp"&&(I.innerHTML=Ge),K=a(e),h=M(e,"P",{"data-svelte-h":!0}),u(h)!=="svelte-342cv9"&&(h.textContent=qe),ee=a(e),j=M(e,"UL",{"data-svelte-h":!0}),u(j)!=="svelte-z81dww"&&(j.innerHTML=Ze),te=a(e),p(g.$$.fragment,e),le=a(e),d=M(e,"P",{"data-svelte-h":!0}),u(d)!=="svelte-hezjaf"&&(d.innerHTML=Qe),se=a(e),p(f.$$.fragment,e),ne=a(e),C=M(e,"P",{"data-svelte-h":!0}),u(C)!=="svelte-1npf6uj"&&(C.textContent=$e),ae=a(e),b=M(e,"BLOCKQUOTE",{"data-svelte-h":!0}),u(b)!=="svelte-d3rfkz"&&(b.innerHTML=We),ie=a(e),p(B.$$.fragment,e),oe=a(e),G=M(e,"P",{"data-svelte-h":!0}),u(G)!=="svelte-1w70cim"&&(G.innerHTML=Se),Me=a(e),p(q.$$.fragment,e),pe=a(e),p(Z.$$.fragment,e),Je=a(e),Q=M(e,"P",{"data-svelte-h":!0}),u(Q)!=="svelte-1g3ypvi"&&(Q.textContent=Ee),ye=a(e),p($.$$.fragment,e),Te=a(e),p(W.$$.fragment,e),re=a(e),S=M(e,"P",{"data-svelte-h":!0}),u(S)!=="svelte-1xyk36t"&&(S.textContent=Ae),ue=a(e),p(E.$$.fragment,e),ce=a(e),p(A.$$.fragment,e),Ue=a(e),k=M(e,"P",{"data-svelte-h":!0}),u(k)!=="svelte-1xit2od"&&(k.innerHTML=ke),me=a(e),x=M(e,"BLOCKQUOTE",{"data-svelte-h":!0}),u(x)!=="svelte-1ga4y2y"&&(x.innerHTML=xe),we=a(e),p(N.$$.fragment,e),Ie=a(e),p(V.$$.fragment,e),he=a(e),v=M(e,"P",{"data-svelte-h":!0}),u(v)!=="svelte-10f0asl"&&(v.textContent=Ne),je=a(e),p(X.$$.fragment,e),ge=a(e),Y=M(e,"P",{"data-svelte-h":!0}),u(Y)!=="svelte-n17hdm"&&(Y.textContent=Ve),de=a(e),p(z.$$.fragment,e),fe=a(e),p(R.$$.fragment,e),Ce=a(e),H=M(e,"P",{}),ve(H).forEach(l),this.h()},h(){Xe(U,"name","hf:doc:metadata"),Xe(U,"content",Oe)},m(e,t){Pe(document.head,U),s(e,P,t),s(e,_,t),s(e,L,t),J(m,e,t),s(e,D,t),J(w,e,t),s(e,O,t),s(e,I,t),s(e,K,t),s(e,h,t),s(e,ee,t),s(e,j,t),s(e,te,t),J(g,e,t),s(e,le,t),s(e,d,t),s(e,se,t),J(f,e,t),s(e,ne,t),s(e,C,t),s(e,ae,t),s(e,b,t),s(e,ie,t),J(B,e,t),s(e,oe,t),s(e,G,t),s(e,Me,t),J(q,e,t),s(e,pe,t),J(Z,e,t),s(e,Je,t),s(e,Q,t),s(e,ye,t),J($,e,t),s(e,Te,t),J(W,e,t),s(e,re,t),s(e,S,t),s(e,ue,t),J(E,e,t),s(e,ce,t),J(A,e,t),s(e,Ue,t),s(e,k,t),s(e,me,t),s(e,x,t),s(e,we,t),J(N,e,t),s(e,Ie,t),J(V,e,t),s(e,he,t),s(e,v,t),s(e,je,t),J(X,e,t),s(e,ge,t),s(e,Y,t),s(e,de,t),J(z,e,t),s(e,fe,t),J(R,e,t),s(e,Ce,t),s(e,H,t),be=!0},p:ze,i(e){be||(y(m.$$.fragment,e),y(w.$$.fragment,e),y(g.$$.fragment,e),y(f.$$.fragment,e),y(B.$$.fragment,e),y(q.$$.fragment,e),y(Z.$$.fragment,e),y($.$$.fragment,e),y(W.$$.fragment,e),y(E.$$.fragment,e),y(A.$$.fragment,e),y(N.$$.fragment,e),y(V.$$.fragment,e),y(X.$$.fragment,e),y(z.$$.fragment,e),y(R.$$.fragment,e),be=!0)},o(e){T(m.$$.fragment,e),T(w.$$.fragment,e),T(g.$$.fragment,e),T(f.$$.fragment,e),T(B.$$.fragment,e),T(q.$$.fragment,e),T(Z.$$.fragment,e),T($.$$.fragment,e),T(W.$$.fragment,e),T(E.$$.fragment,e),T(A.$$.fragment,e),T(N.$$.fragment,e),T(V.$$.fragment,e),T(X.$$.fragment,e),T(z.$$.fragment,e),T(R.$$.fragment,e),be=!1},d(e){e&&(l(P),l(_),l(L),l(D),l(O),l(I),l(K),l(h),l(ee),l(j),l(te),l(le),l(d),l(se),l(ne),l(C),l(ae),l(b),l(ie),l(oe),l(G),l(Me),l(pe),l(Je),l(Q),l(ye),l(Te),l(re),l(S),l(ue),l(ce),l(Ue),l(k),l(me),l(x),l(we),l(Ie),l(he),l(v),l(je),l(ge),l(Y),l(de),l(fe),l(Ce),l(H)),l(U),r(m,e),r(w,e),r(g,e),r(f,e),r(B,e),r(q,e),r(Z,e),r($,e),r(W,e),r(E,e),r(A,e),r(N,e),r(V,e),r(X,e),r(z,e),r(R,e)}}}const Oe='{"title":"HTTP API Reference","local":"http-api-reference","sections":[{"title":"Table of Contents","local":"table-of-contents","sections":[],"depth":4},{"title":"Text Generation Inference custom API","local":"text-generation-inference-custom-api","sections":[],"depth":2},{"title":"OpenAI Messages API","local":"openai-messages-api","sections":[],"depth":2},{"title":"Making a Request","local":"making-a-request","sections":[],"depth":2},{"title":"Streaming","local":"streaming","sections":[],"depth":2},{"title":"Synchronous","local":"synchronous","sections":[],"depth":2},{"title":"Hugging Face Inference Endpoints","local":"hugging-face-inference-endpoints","sections":[],"depth":2},{"title":"Cloud Providers","local":"cloud-providers","sections":[],"depth":2},{"title":"Amazon SageMaker","local":"amazon-sagemaker","sections":[],"depth":2}],"depth":1}';function Ke(Be){return Re(()=>{new URLSearchParams(window.location.search).get("fw")}),[]}class nt extends _e{constructor(U){super(),He(this,U,Ke,De,Ye,{})}}export{nt as component};
